@@ -23,4 +23,6 @@ def SIR_DES(N, beta, gamma, I = 1):
     plt.plot(t, N * removed, color='black', label='removed')
     plt.legend()
     plt.show()
-SIR_DES(N=1000, beta=0.4, gamma=0.2)
+    
+"""Example use:"""
+#SIR_DES(N=1000, beta=0.4, gamma=0.2)
