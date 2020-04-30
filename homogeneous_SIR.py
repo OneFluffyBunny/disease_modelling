@@ -95,15 +95,7 @@ def empirical_major_outbreak_calculator(N_list, beta, gamma, runs=10000, I=1, R=
         print(major_outbreak_probabilities)
     return major_outbreak_probabilities
 
+"""Example uses of the above functions:"""
 #pickle_homogeneous_SIR_data(file_name='10000_runs_3', runs=10000, N=1000, beta=0.3, gamma=0.2, I=1, R=0, time_limit=1000)
-#final_distibution_from_homogeneous_pickle('10000_runs_2', save_figure=True, figure_name='affected_distribution_R3', figure_format='eps')
+#final_distibution_from_homogeneous_pickle('10000_runs_3', save_figure=True, figure_name='affected_distribution_R3', figure_format='eps')
 #draw_infection_from_homogeneous_pickle('10000_runs', run=4, save_figure=True, figure_format='eps', figure_name='homo_outbreak')
-#SIR_trial(N=1000, beta=0.4, gamma=0.2)
-
-
-major_outbreak_probabilities = empirical_major_outbreak_calculator(N_list=[i*1000 for i in range(1,101)], beta=0.4, gamma=0.2)
-plt.plot([i[0] for i in major_outbreak_probabilities], [i[1] for i in major_outbreak_probabilities], linestyle='--', color = 'red')
-plt.xlabel('Initial population', fontsize=15)
-plt.ylabel('Major outbreak probability', fontsize=15)
-plt.axhline(0.5, color='black')
-plt.show()
