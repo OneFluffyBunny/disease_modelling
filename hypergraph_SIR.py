@@ -132,6 +132,7 @@ def MO_probability_calculator(beta, gamma, times_in_hyperedges):
 
 
 def draw_MO_graph(beta, gamma):
+    """Draw the major outbreak probability as a function of random mixing hyperege weight in the married model"""
     percentage_array = []
     MO_array = []
     for i in range(101):
@@ -161,6 +162,7 @@ def draw_infection_from_hyper_pickle(file_name, directory='hyper_SIR', run=0, sa
 
 
 def number_of_total_infected_from_hyper_pickle(file_name, directory='hyper_SIR'):
+    """Computes the total number of infected in each run for a pickled set of runs"""
     initial_data, all_runs = unpickle_data(file_name, directory)
     total_infected = []
     for run in all_runs:
@@ -168,6 +170,7 @@ def number_of_total_infected_from_hyper_pickle(file_name, directory='hyper_SIR')
     return total_infected
 
 def average_and_variane_of_total_infected(total_infected):
+    """Computes the average and stdev for a list of numbers representing the total number of infected individuals"""
     total_infected_in_MO = [infected for infected in total_infected if infected > 50]
     total_infected = np.array(total_infected)
     print('The average number of infected individuals is ' + str(np.mean(total_infected)))
@@ -175,128 +178,12 @@ def average_and_variane_of_total_infected(total_infected):
     print('The standard deviation for the number of infected individuals is ' + str(np.std(total_infected)))
     print('The standard deviation for the number of infected individuals in a MO is ' + str(np.std(total_infected_in_MO)))
 
-
-switch = False
-if switch:
-    SIR_data = hyper_infection(N=1000, beta=0.6, gamma=0.2,hyperedge_sizes=(0, 3, 30), times_in_hyperedges=(0.2, 0.3, 0.5))
-    draw_SIR(times=[element[0] for element in SIR_data],
-         susceptible=[element[1] for element in SIR_data],
-         infected=[element[2] for element in SIR_data],
-         recovered=[element[3] for element in SIR_data])
-    plt.show()
-else:
-
-    #pickle_hyper_SIR_data('test_10runs', runs=10, N=1000, beta=0.6, gamma=0.2, hyperedge_sizes=(0, 3, 30), times_in_hyperedges=(0.2, 0.3, 0.5))
-    #pickle_hyper_SIR_data('test_10runs_2', runs=10, N=1000, beta=0.6, gamma=0.2, hyperedge_sizes=(0, 3, 30),
-                          #times_in_hyperedges=(1, 0, 0))
-    #print(MO_calculator_hyper_pickle('test_1000_no_office'))
-    #draw_infection_from_hyper_pickle('test_10runs')
-    #draw_infection_from_hyper_pickle('test_10runs_2', run=2)
-
-    #pickle_hyper_SIR_data('10000_full_runs', runs=10000, N=1000, beta=0.4, gamma=0.2, hyperedge_sizes=(0, 3, 30),
-     #                     times_in_hyperedges=(0.2, 0.3, 0.5))
-    #pickle_hyper_SIR_data('1000_off_runs', runs=1000, N=1000, beta=0.4, gamma=0.2, hyperedge_sizes=(0, 3), times_in_hyperedges=(1, 0))
-    #unpickle_data('10000_full_runs', directory='hyper_SIR',)
-    #print(MO_calculator_hyper_pickle('10000_full_runs'))
-    #average_and_variane_of_total_infected(number_of_total_infected_from_hyper_pickle('10000_full_runs'))
-    #average_and_variane_of_total_infected(number_of_total_infected_from_hyper_pickle('10000_runs', directory='simple_SIR'))
-
-    pickle_hyper_SIR_data('10000_couple_runs', runs=10000, N=1000, beta=0.4, gamma=0.2, hyperedge_sizes=(0, 2),
-                          times_in_hyperedges=(0.7, 0.3))
-    print(MO_calculator_hyper_pickle('10000_couple_runs'))
-    pass
-
-
-
-
-
-
-
-def event_probability_curves(N, beta, gamma, hyperedge_sizes=(0,3,30), times_in_hyperedges=(0.2, 0.3, 0.5), time_limit=1000, infected_set = None):
-    """ "hyperedge_sizes" represents the sizes of the hyperdge types. 0 refers to the entire node set (should thus be read as N)
-    "times_in_hyperedges" will correspond to the time spent in each hyperedge type"""
-    if infected_set is None:
-        infected_set = {0} # the set of nodes that are initially infected
-    if hyperedge_sizes[0]==0: # a silly hack to encode the random mixing hyperedge with 0 instead of N. I'm not proud
-        hyperedge_sizes = tuple([N] + list(hyperedge_sizes)[1:])
-    hyperedge_assignments = [[] for i in range(N)] # a list that will hold the incident hyperedges for each node
-    susceptible_dictionary = {i:0 for i in range(N) if not i in infected_set} # the dictionary of susceptible nodes with the associated rates of infection (we initiate them at 0)
-
-    current_hyperedge = 1 # will keep track of the number of the hyperedge when randomly assigning them to nodes
-    for size in hyperedge_sizes: # we assign the set of incident hyperedges for each node
-            assignment = assign_hyperedges(N, size, first_hyperedge=current_hyperedge)
-            for i in range(N):
-                hyperedge_assignments[i].append(assignment[i])
-            current_hyperedge += N // size + (N % size != 0) # increase the current number by the number of hyperedges we added
-
-    hyperedge_infections = {i:0 for i in range(1,current_hyperedge)} # keep track of the number of infected in each hyperedge
-    for i in infected_set:
-        for j in hyperedge_assignments[i]:
-            hyperedge_infections[j] += 1  # we compute the number of infected in each hyperedge
-
-    t = 0 # the start time of the process. it will change whenever a new event occurs
-    SIR_data = [(t, len(susceptible_dictionary), len(infected_set), N - len(susceptible_dictionary) - len(infected_set))]
-    infection_prob = []
-    number_of_infected_hyperedges = [1]
-    # SIR_data will hold the evolution of the process by the recording the number of individuals in each class every time a new event occurs
-    while len(infected_set) and t < time_limit: # continue the iteration whilst there are still infected nodes
-        # There are 2 main events that can occur: a new infection or a recovery
-        # Thus we need to know the rate of each after every new event occurs
-        new_infected_hyperedges = 0
-        for susceptible_individual in susceptible_dictionary.keys():
-            infectiousness = 0 # a local parameter for the total infection rate for each node
-            for i in range(len(hyperedge_sizes)):
-                corresponding_hyperedge = hyperedge_assignments[susceptible_individual][i]
-                infected_in_corresponding_hyperedge = hyperedge_infections[corresponding_hyperedge]
-                infectiousness += f(infected_in_corresponding_hyperedge, hyperedge_sizes[i], times_in_hyperedges[i])
-            susceptible_dictionary[susceptible_individual] = infectiousness
-
-        total_infection_rate = sum(susceptible_dictionary.values()) # the total rate of infection for the susceptibles without yet multiplying by beta
-        total_recovery_rate = gamma * len(infected_set) # the total rate of recovery
-        competing_rate = total_infection_rate * beta + total_recovery_rate # the rate at which a new event occurs
-        infection_event = total_infection_rate * beta / competing_rate # chance that the next event is an infection
-        infection_prob.append(infection_event)
-        # Now we start our event based iteration
-        dt = -np.log(np.random.random_sample()) / competing_rate # time until the next event occurs
-        t += dt # increment the time
-
-        if np.random.random_sample() < infection_event:  # then somebody got infected
-            a = [] # this will hold all the individuals that could be infected
-            p = [] # this will hold the respective probabilities of the individuals that could be infected
-            for pair in susceptible_dictionary.items():
-                a.append(pair[0])
-                p.append(pair[1] / total_infection_rate)
-            infected_individual = np.random.choice(a=a,p=p) # determine the infected individual from the distribution
-            del susceptible_dictionary[infected_individual] # remove the infected individual from the susceptible class
-            infected_set.add(infected_individual) # add the newly infected individual to the infected class
-            #print(infected_set)
-            for hyperedge in hyperedge_assignments[infected_individual]:
-                hyperedge_infections[hyperedge] += 1 # increase the number of infected in all hyperedges containing the newly infected node
-                if hyperedge_infections[hyperedge] == 1:
-                    new_infected_hyperedges += 1
-        else: # then somebody recovered
-            # Note that the rate of recovery coincides for all infected individuals as a result of competing exponentials
-            recovered_individual = np.random.choice(list(infected_set))
-            infected_set.remove(recovered_individual) # Remove the newly recovered individual from the infected set
-            for hyperedge in hyperedge_assignments[recovered_individual]:
-                hyperedge_infections[hyperedge] -= 1 # decrease the number of infected in all hyperdges containing the recovered node
-                if hyperedge_infections[hyperedge] == 0:
-                    new_infected_hyperedges -= 1
-        SIR_data.append((t, len(susceptible_dictionary), len(infected_set), N - len(susceptible_dictionary) - len(infected_set)))
-        number_of_infected_hyperedges.append(number_of_infected_hyperedges[-1] + new_infected_hyperedges)
-    plt.figure(1)
-    plt.plot(range(len(infection_prob)), infection_prob, color='red')
-    plt.plot(range(len(infection_prob)), [0.5] * len(infection_prob), color='grey', linestyle='--')
-    plt.xlabel('Order of the event', fontsize=15)
-    plt.ylabel('Probability that event is an infection', fontsize=15)
-    plt.figure(2)
-    draw_SIR(times=[element[0] for element in SIR_data],
-             susceptible=[element[1] for element in SIR_data],
-             infected=[element[2] for element in SIR_data],
-             recovered=[element[3] for element in SIR_data])
-    plt.figure(3)
-    plt.plot(range(len(infection_prob)), number_of_infected_hyperedges[1:])
-    plt.show()
-    return(SIR_data)
-#event_probability_curves(N=1000, beta=0.4, gamma=0.2, hyperedge_sizes=(0, 3, 30), times_in_hyperedges=(0.2, 0.3, 0.5))
-#event_probability_curves(N=1000, beta=0.4, gamma=0.2, hyperedge_sizes=(0, 3, 30), times_in_hyperedges=(1, 0, 0))
+    
+"""Example uses:"""
+#pickle_hyper_SIR_data('test_10runs', runs=10, N=1000, beta=0.6, gamma=0.2, hyperedge_sizes=(0, 3, 30), times_in_hyperedges=(0.2, 0.3, 0.5))
+#pickle_hyper_SIR_data('test_10runs_2', runs=10, N=1000, beta=0.6, gamma=0.2, hyperedge_sizes=(0, 3, 30), times_in_hyperedges=(1, 0, 0))
+#print(MO_calculator_hyper_pickle('test_1000_no_office'))
+#draw_infection_from_hyper_pickle('test_10runs')
+#unpickle_data('10000_full_runs', directory='hyper_SIR',)
+#print(MO_calculator_hyper_pickle('10000_full_runs'))
+#average_and_variane_of_total_infected(number_of_total_infected_from_hyper_pickle('10000_full_runs'))
